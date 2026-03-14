@@ -23,8 +23,8 @@ pub struct AnalysisResult {
     pub pattern: LeakPattern,
     /// Heap delta after a forced GC marker (if present)
     pub baseline_delta_bytes: i64,
-    /// Iteration range where a sudden step was detected
-    pub suspect_region: Option<(u64, u64)>,
+    /// Iteration where a sudden step was detected, and the delta in bytes
+    pub suspect_region: Option<(u64, i64)>,
     /// R² of the linear fit (0.0–1.0)
     pub r_squared: f64,
 }

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
-	"math"
 	"strings"
 )
 
@@ -196,5 +195,3 @@ func xmlEsc(s string) string {
 }
 
 func roundBytes(b int64) string { return formatBytes(b) }
-
-func _ () { _ = math.Abs } // keep math import used
