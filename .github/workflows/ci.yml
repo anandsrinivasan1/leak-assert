@@ -178,3 +178,71 @@ jobs:
         run: |
           source .venv/bin/activate
           python -c "import leak_assert_native; print('native OK')"
+
+  # ── Go CGO integration tests ─────────────────────────────────────────────────
+  go-cgo:
+    name: Go CGO integration (Rust FFI)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-ffi-${{ hashFiles('bindings/c/Cargo.toml', 'core/Cargo.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-ffi-
+
+      - name: Build Rust FFI (cdylib)
+        run: cargo build --release -p leak-assert-ffi
+
+      - name: Setup Go 1.22
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache-dependency-path: sdks/go/go.sum
+
+      - name: Run CGO integration tests
+        working-directory: sdks/go
+        env:
+          CGO_ENABLED: "1"
+          CGO_LDFLAGS: "-L${{ github.workspace }}/bindings/c/target/release -lleak_assert_ffi"
+          LD_LIBRARY_PATH: "${{ github.workspace }}/bindings/c/target/release"
+        run: go test ./ffi/... -v -count=1
+
+  # ── WASM web target (browser / Deno) ─────────────────────────────────────────
+  wasm-web:
+    name: WASM web target (browser / Deno)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust + wasm target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Build WASM (web target)
+        run: wasm-pack build bindings/wasm --target web --out-dir ../../sdks/node/wasm/web-pkg
+
+      - name: Verify web-pkg output
+        run: |
+          ls -lh sdks/node/wasm/web-pkg/
+          test -f sdks/node/wasm/web-pkg/leak_assert_wasm.js
+          test -f sdks/node/wasm/web-pkg/leak_assert_wasm_bg.wasm
+          echo "web-pkg OK"
+
+      - name: Upload web-pkg artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-web-pkg
+          path: sdks/node/wasm/web-pkg/

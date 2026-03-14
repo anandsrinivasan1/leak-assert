@@ -99,6 +99,23 @@ func TestGoroutinesStable_passes(t *testing.T) {
 	lt.Assert(leakassert.GoroutinesStable())
 }
 
+// ── NoRetainedTypes ───────────────────────────────────────────────────────────
+
+func TestNoRetainedTypes_passes_for_clean_workload(t *testing.T) {
+	lt := leakassert.New(t, leakassert.Config{Iterations: 100, Warmup: 0})
+	lt.Run(func() {
+		buf := make([]byte, 64)
+		_ = buf // released each iteration
+	})
+	lt.Assert(leakassert.NoRetainedTypes(1000)) // generous threshold for small alloc noise
+}
+
+func TestNoRetainedTypes_passes_zero_delta(t *testing.T) {
+	lt := leakassert.New(t, leakassert.Config{Iterations: 50, Warmup: 0})
+	lt.Run(func() {}) // no-op workload: heap objects should not grow
+	lt.Assert(leakassert.NoRetainedTypes(500))
+}
+
 // ── ForceGC ───────────────────────────────────────────────────────────────────
 
 func TestForceGC_doesNotPanic(t *testing.T) {

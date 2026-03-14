@@ -3,7 +3,7 @@ leak-assert — Python usage examples
 Run with: pytest examples/python/test_example.py -v
 """
 import pytest
-from leak_assert import LeakTest, LeakAssertionError, mb, kb
+from leak_assert import LeakTest, LeakAssertionError, mb, kb, to_html, to_junit
 
 
 # ── Example 1: Leaky cache is caught ─────────────────────────────────────────
@@ -72,3 +72,30 @@ async def test_async_handler_no_leak():
 
     t.assert_growth_rate(max="1kb/iter")
     t.assert_stable(tolerance="5mb")
+
+
+# ── Example 5: HTML + JUnit reporters ────────────────────────────────────────
+
+def test_reporters_produce_output(tmp_path):
+    """Demonstrates building a Report and serialising it to HTML and JUnit XML."""
+    with LeakTest(iterations=200, warmup=0, name="reporter-demo") as t:
+        for _ in t:
+            buf = b"x" * 256
+            _ = buf
+
+    t.assert_growth_rate(max="1kb/iter")
+    t.assert_stable(tolerance="5mb")
+
+    report = t.get_report()
+
+    html = to_html(report)
+    assert "<!DOCTYPE html>" in html
+    assert "reporter-demo" in html
+
+    xml = to_junit(report)
+    assert '<?xml version="1.0"' in xml
+    assert "reporter-demo" in xml
+
+    # Optionally write to disk:
+    (tmp_path / "leak-report.html").write_text(html)
+    (tmp_path / "leak-report.xml").write_text(xml)

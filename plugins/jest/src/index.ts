@@ -56,9 +56,9 @@ export default class LeakAssertReporter implements Reporter {
 
 // ── leakTest() helper ─────────────────────────────────────────────────────────
 
-import { LeakTest } from 'leak-assert'
-import type { AssertionOptions } from 'leak-assert'
-import { toHTML, toJUnit } from 'leak-assert/reporters'
+import { LeakTest } from '@anandsrinivasan2/leak-assert'
+import type { AssertionOptions } from '@anandsrinivasan2/leak-assert'
+import { toHTML, toJUnit } from '@anandsrinivasan2/leak-assert/reporters'
 
 export interface LeakTestOptions extends AssertionOptions {
   warmup?:      number

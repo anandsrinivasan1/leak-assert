@@ -50,6 +50,16 @@ func GoroutinesStable() Assertion {
 	return &goroutineAssertion{}
 }
 
+// NoRetainedTypes fails if the live heap-object count increased by more than
+// maxDelta between the start and end of the run.
+//
+// Note: Go's runtime does not expose per-type object counts. This assertion
+// checks the total live-object delta (runtime.MemStats.HeapObjects) instead.
+// Use a small maxDelta (e.g. 100) to catch unbounded retention.
+func NoRetainedTypes(maxDelta uint64) Assertion {
+	return &noRetainedTypesAssertion{maxDelta: maxDelta}
+}
+
 // ── Implementations ───────────────────────────────────────────────────────────
 
 type growthRateAssertion struct{ maxBytesPerIter float64 }
@@ -107,6 +117,19 @@ type goroutineAssertion struct{}
 
 func (a *goroutineAssertion) check(_ *AnalysisResult, _ []Sample) error {
 	// Goroutine check handled in LeakTest.Assert via runtime.NumGoroutine()
+	return nil
+}
+
+type noRetainedTypesAssertion struct{ maxDelta uint64 }
+
+func (a *noRetainedTypesAssertion) check(result *AnalysisResult, _ []Sample) error {
+	if result.HeapObjectsDelta > int64(a.maxDelta) {
+		return &AssertionError{
+			Name:     "NoRetainedTypes",
+			Actual:   fmt.Sprintf("+%d live heap objects retained", result.HeapObjectsDelta),
+			Expected: fmt.Sprintf("≤ %d additional live objects", a.maxDelta),
+		}
+	}
 	return nil
 }
 

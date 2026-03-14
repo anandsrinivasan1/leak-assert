@@ -75,3 +75,26 @@ func TestNoGoroutineLeak(t *testing.T) {
 		leakassert.GoroutinesStable(),
 	)
 }
+
+// ── Example 4: NoRetainedTypes — heap object count check ─────────────────────
+
+func TestNoRetainedHeapObjects(t *testing.T) {
+	lt := leakassert.New(t, leakassert.Config{
+		Iterations: 500,
+		Warmup:     50,
+		ForceGC:    true,
+	})
+
+	lt.Run(func() {
+		// Allocate a temporary slice — released each iteration
+		buf := make([]byte, 1024)
+		_ = len(buf)
+	})
+
+	lt.Assert(
+		leakassert.GrowthRate("1kb/iter"),
+		// Allow up to 200 extra live heap objects (runtime noise tolerance).
+		// Tighten this for stricter object-retention checks.
+		leakassert.NoRetainedTypes(200),
+	)
+}

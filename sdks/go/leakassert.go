@@ -53,16 +53,18 @@ type AnalysisResult struct {
 	SlopeBytesPerIter float64
 	BaselineDelta     int64
 	SuspectRegion     *[2]int // iter range where a step was detected
+	HeapObjectsDelta  int64   // live heap object count change from start to end of run
 }
 
 // ── LeakTest ──────────────────────────────────────────────────────────────────
 
 // LeakTest runs a workload and collects heap samples.
 type LeakTest struct {
-	t       *testing.T
-	cfg     Config
-	samples []Sample
+	t                 *testing.T
+	cfg               Config
+	samples           []Sample
 	goroutinesAtStart int
+	heapObjsBefore    uint64
 }
 
 // New creates a LeakTest bound to a *testing.T.
@@ -82,7 +84,10 @@ func (lt *LeakTest) Run(fn func()) *LeakTest {
 	}
 
 	lt.goroutinesAtStart = runtime.NumGoroutine()
-	lt.samples           = nil
+	var msStart runtime.MemStats
+	runtime.ReadMemStats(&msStart)
+	lt.heapObjsBefore = msStart.HeapObjects
+	lt.samples        = nil
 
 	for i := 1; i <= lt.cfg.Iterations; i++ {
 		fn()
@@ -106,9 +111,14 @@ func (lt *LeakTest) Assert(assertions ...Assertion) *LeakTest {
 		return lt
 	}
 
+	var msNow runtime.MemStats
+	ForceGC()
+	runtime.ReadMemStats(&msNow)
+
 	result := &AnalysisResult{
 		SlopeBytesPerIter: OLSSlope(lt.samples),
 		BaselineDelta:     int64(lt.samples[len(lt.samples)-1].HeapUsed) - int64(lt.samples[0].HeapUsed),
+		HeapObjectsDelta:  int64(msNow.HeapObjects) - int64(lt.heapObjsBefore),
 	}
 
 	allPassed := true

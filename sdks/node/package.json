@@ -4,12 +4,18 @@
   "description": "Memory leak regression testing — write assertions, not profiler reports",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".":           { "require": "./dist/index.js",            "types": "./dist/index.d.ts" },
+    "./browser":   { "require": "./dist/browser.js",          "types": "./dist/browser.d.ts" },
+    "./reporters": { "require": "./dist/reporters/junit.js",  "types": "./dist/reporters/junit.d.ts" }
+  },
   "scripts": {
-    "build":       "tsc",
-    "build:wasm":  "cd ../../bindings/wasm && wasm-pack build --target nodejs --out-dir ../../sdks/node/wasm/pkg",
-    "prebuild":    "npm run build:wasm || true",
-    "test":        "node --expose-gc --experimental-vm-modules node_modules/.bin/jest",
-    "lint":        "eslint src --ext .ts",
+    "build":          "tsc",
+    "build:wasm":     "cd ../../bindings/wasm && wasm-pack build --target nodejs --out-dir ../../sdks/node/wasm/pkg",
+    "build:wasm:web": "cd ../../bindings/wasm && wasm-pack build --target web    --out-dir ../../sdks/node/wasm/web-pkg",
+    "prebuild":       "npm run build:wasm || true",
+    "test":           "node --expose-gc --experimental-vm-modules node_modules/.bin/jest",
+    "lint":           "eslint src --ext .ts",
     "prepublishOnly": "npm run build"
   },
   "keywords": ["memory", "leak", "testing", "profiling", "heap"],
@@ -18,7 +24,7 @@
     "type": "git",
     "url":  "https://github.com/anandsrinivasan1/leak-assert"
   },
-  "files": ["dist", "wasm/pkg"],
+  "files": ["dist", "wasm/pkg", "wasm/web-pkg"],
   "dependencies": {},
   "devDependencies": {
     "typescript":  "^5.0.0",

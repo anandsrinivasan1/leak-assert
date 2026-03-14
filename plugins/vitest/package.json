@@ -8,8 +8,8 @@
   "license":     "MIT",
   "scripts": { "build": "tsc" },
   "peerDependencies": {
-    "vitest":       ">=1.0",
-    "leak-assert":  ">=0.1"
+    "vitest":                        ">=1.0",
+    "@anandsrinivasan2/leak-assert": ">=0.1"
   },
   "devDependencies": {
     "typescript":  "^5.0.0",

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>leak-assert — Browser WASM demo</title>
+  <style>
+    body { font-family: monospace; padding: 2rem; background: #1e1e1e; color: #d4d4d4; }
+    pre  { background: #2d2d2d; padding: 1rem; border-radius: 4px; }
+    .pass { color: #4ec9b0; }
+    .fail { color: #f44747; }
+  </style>
+</head>
+<body>
+  <h2>leak-assert browser demo</h2>
+  <p>Open DevTools console to see results.</p>
+  <pre id="output">Loading WASM…</pre>
+
+  <!--
+    Prerequisites:
+      npm run build:wasm:web   (in sdks/node/)
+    This generates sdks/node/wasm/web-pkg/leak_assert_wasm.js + .wasm
+
+    Serve this directory with any static server, e.g.:
+      npx serve examples/browser
+  -->
+  <script type="module">
+    // 1. Load the wasm-bindgen web output.
+    //    Adjust path to where you serve wasm/web-pkg/.
+    import init, { analyze_json, slope_json }
+      from '../../sdks/node/wasm/web-pkg/leak_assert_wasm.js'
+
+    // 2. Import the typed wrapper from the SDK.
+    //    In a real project this would be:
+    //    import { LeakAssert, olsSlope } from '@anandsrinivasan2/leak-assert/browser'
+    //    Here we inline a minimal version for the standalone demo.
+
+    await init()
+
+    // ── Simulate 500 iterations of a leaky function ───────────────────────────
+    const samples = []
+    for (let iter = 0; iter <= 500; iter += 50) {
+      samples.push({
+        ts:        Date.now() + iter * 10,
+        iter,
+        heap_used: 50_000_000 + iter * 200,   // 200 bytes/iter growth
+      })
+    }
+
+    // ── Slope (lightweight) ───────────────────────────────────────────────────
+    const slope = slope_json(JSON.stringify(samples))
+    console.log(`Slope: ${slope.toFixed(1)} bytes/iter`)
+
+    // ── Full analysis with assertions ─────────────────────────────────────────
+    const assertions = [
+      { type: 'growth_rate', max_bytes_per_iter: 1024 },
+    ]
+    const resultJson = analyze_json(JSON.stringify(samples), JSON.stringify(assertions))
+    const result = JSON.parse(resultJson)
+
+    const status = result.passed ? 'PASS ✓' : 'FAIL ✗'
+    const cls    = result.passed ? 'pass'   : 'fail'
+
+    document.getElementById('output').innerHTML =
+      `Slope: ${slope.toFixed(1)} bytes/iter\n` +
+      `Status: <span class="${cls}">${status}</span>\n` +
+      `Summary: ${result.summary}`
+
+    console.log('Full result:', result)
+  </script>
+</body>
+</html>

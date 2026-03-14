@@ -10,8 +10,8 @@
     "build": "tsc"
   },
   "peerDependencies": {
-    "jest":         ">=29",
-    "leak-assert":  ">=0.1"
+    "jest":                        ">=29",
+    "@anandsrinivasan2/leak-assert": ">=0.1"
   },
   "devDependencies": {
     "typescript":   "^5.0.0",

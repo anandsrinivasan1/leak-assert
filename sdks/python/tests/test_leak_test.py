@@ -64,3 +64,93 @@ class TestLeakTestAssertions:
         t.print_summary()
         captured = capsys.readouterr()
         assert "leak-assert" in captured.out
+
+
+class TestGetReport:
+    def test_report_has_correct_name(self):
+        with LeakTest(iterations=50, warmup=0, name="my-test") as t:
+            for _ in t:
+                pass
+        t.assert_stable(tolerance="10mb")
+        report = t.get_report()
+        assert report.name == "my-test"
+
+    def test_report_passed_when_assertions_pass(self):
+        with LeakTest(iterations=100, warmup=0) as t:
+            for _ in t:
+                pass
+        t.assert_growth_rate(max="10mb/iter")
+        t.assert_stable(tolerance="10mb")
+        report = t.get_report()
+        assert report.passed is True
+
+    def test_report_failed_when_assertion_fails(self):
+        store: list = []
+        with LeakTest(iterations=100, warmup=0, sample_every=10, force_gc=False) as t:
+            for _ in t:
+                store.append(b"x" * 40960)
+        with pytest.raises(LeakAssertionError):
+            t.assert_growth_rate(max=kb(1))
+        report = t.get_report()
+        assert report.passed is False
+
+    def test_report_contains_samples(self):
+        with LeakTest(iterations=100, warmup=0) as t:
+            for _ in t:
+                pass
+        report = t.get_report()
+        assert len(report.samples) > 0
+
+    def test_report_assertions_recorded(self):
+        with LeakTest(iterations=100, warmup=0) as t:
+            for _ in t:
+                pass
+        t.assert_stable(tolerance="10mb")
+        t.assert_growth_rate(max="10mb/iter")
+        report = t.get_report()
+        assert len(report.assertions) == 2
+        assert report.assertions[0].name == "stable"
+        assert report.assertions[1].name == "growth_rate"
+
+    def test_report_duration_positive(self):
+        with LeakTest(iterations=50, warmup=0) as t:
+            for _ in t:
+                pass
+        report = t.get_report()
+        assert report.duration_ms >= 0
+
+
+class TestAssertNoRetained:
+    def test_skipped_gracefully_without_objgraph(self, monkeypatch):
+        """When objgraph is not installed the assertion raises ImportError."""
+        import sys
+        # Hide objgraph if installed
+        monkeypatch.setitem(sys.modules, "objgraph", None)
+        with LeakTest(iterations=50, warmup=0) as t:
+            for _ in t:
+                pass
+        with pytest.raises(ImportError, match="objgraph"):
+            t.assert_no_retained(["list"])
+
+    def test_passes_for_non_leaking_type(self):
+        pytest.importorskip("objgraph")
+        with LeakTest(iterations=100, warmup=0) as t:
+            for _ in t:
+                buf = b"x" * 16  # released each iteration
+                _ = buf
+        # bytes count should not grow beyond baseline
+        t.assert_no_retained(["MyFakeType999"])  # non-existent type → always 0
+
+    def test_detects_retained_objects(self):
+        pytest.importorskip("objgraph")
+
+        class _Sentinel:
+            pass
+
+        store: list = []
+        with LeakTest(iterations=100, warmup=0) as t:
+            for _ in t:
+                store.append(_Sentinel())  # never released
+
+        with pytest.raises(LeakAssertionError, match="no_retained_types"):
+            t.assert_no_retained(["_Sentinel"])

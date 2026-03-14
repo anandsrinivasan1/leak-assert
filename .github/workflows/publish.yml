@@ -125,11 +125,81 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # ── npm (jest-leak-assert plugin) ────────────────────────────────────────────
+  publish-jest-plugin:
+    name: Publish jest-leak-assert to npm
+    runs-on: ubuntu-latest
+    if: ${{ secrets.NPM_TOKEN != '' }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        working-directory: plugins/jest
+        run: npm install
+
+      - name: Build TypeScript
+        working-directory: plugins/jest
+        run: npm run build
+
+      - name: Stamp version from tag
+        working-directory: plugins/jest
+        run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version
+
+      - name: Publish to npm
+        working-directory: plugins/jest
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # ── npm (vitest-leak-assert plugin) ──────────────────────────────────────────
+  publish-vitest-plugin:
+    name: Publish vitest-leak-assert to npm
+    runs-on: ubuntu-latest
+    if: ${{ secrets.NPM_TOKEN != '' }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        working-directory: plugins/vitest
+        run: npm install
+
+      - name: Build TypeScript
+        working-directory: plugins/vitest
+        run: npm run build
+
+      - name: Stamp version from tag
+        working-directory: plugins/vitest
+        run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version
+
+      - name: Publish to npm
+        working-directory: plugins/vitest
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
   # ── GitHub Release ───────────────────────────────────────────────────────────
   github-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: [publish-pypi, publish-go]
+    needs: [publish-pypi, publish-go, publish-jest-plugin, publish-vitest-plugin]
     permissions:
       contents: write
     steps:

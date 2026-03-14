@@ -117,20 +117,33 @@ def assert_ceiling(samples: Sequence[Sample], max: int | str) -> None:  # noqa: 
         )
 
 
-def assert_no_retained_types(type_names: list[str]) -> None:
-    """Check that object counts for given type names haven't grown.
-    Requires objgraph: pip install objgraph
+def assert_no_retained_types(
+    type_names: list[str],
+    baseline: dict[str, int] | None = None,
+) -> None:
+    """Check that object counts for given type names haven't grown since baseline.
+
+    Compares current counts (after GC) against ``baseline`` — a dict of
+    ``{type_name: count}`` captured before the workload ran.  When
+    ``baseline`` is ``None`` the check passes only if count == 0 (strict).
+
+    Requires objgraph: ``pip install objgraph``
     """
     try:
+        import gc
         import objgraph  # type: ignore
     except ImportError:
         raise ImportError("assert_no_retained_types requires: pip install objgraph")
 
+    gc.collect()
+
     for name in type_names:
-        count = objgraph.count(name)
-        if count > 0:
+        current = objgraph.count(name)
+        base    = baseline.get(name, 0) if baseline is not None else 0
+        leaked  = current - base
+        if leaked > 0:
             raise LeakAssertionError(
                 "no_retained_types",
-                f"{count} live {name} objects",
-                "0 retained",
+                f"{leaked} new {name!r} objects retained (baseline {base}, now {current})",
+                "0 new retained",
             )

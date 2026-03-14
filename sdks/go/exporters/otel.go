@@ -36,8 +36,9 @@ type Options struct {
 // OtelExporter emits leak-assert samples as OTEL gauges.
 // Falls back to JSON console output when the OTEL SDK is not configured.
 type OtelExporter struct {
-	opts   Options
-	latest *Sample
+	opts     Options
+	latest   *Sample
+	recordFn RecordFunc // set by WithRecordFunc; nil = console fallback
 }
 
 // NewOtelExporter creates a new exporter.
@@ -78,14 +79,23 @@ func (e *OtelExporter) Flush(samples []Sample) {
 	}
 }
 
-// tryOtel attempts to record via the OTEL SDK.
-// Returns false if the SDK is not available or not configured.
+// tryOtel attempts to record via a caller-supplied RecordFunc.
+// Returns true when a RecordFunc is configured, false otherwise (triggering
+// the console fallback).
 func (e *OtelExporter) tryOtel(s Sample) bool {
-	// Dynamic import via interface to avoid hard dependency.
-	// In real usage: import "go.opentelemetry.io/otel/metric"
-	// and use meter.Int64ObservableGauge.
-	// This stub returns false until the caller configures a MeterProvider.
-	return false
+	if e.recordFn == nil {
+		return false
+	}
+	ctx := context.Background()
+	prefix := e.opts.Prefix
+	attrs := map[string]string{
+		"service.name": e.opts.ServiceName,
+		"iter":         fmt.Sprintf("%d", s.Iter),
+	}
+	e.recordFn(ctx, prefix+".heap_used",  int64(s.HeapUsed),  attrs)
+	e.recordFn(ctx, prefix+".heap_total", int64(s.HeapTotal), attrs)
+	e.recordFn(ctx, prefix+".rss",        int64(s.RSS),       attrs)
+	return true
 }
 
 // RecordFunc is the signature of a function that records a metric observation.
@@ -93,18 +103,12 @@ func (e *OtelExporter) tryOtel(s Sample) bool {
 type RecordFunc func(ctx context.Context, name string, value int64, attrs map[string]string)
 
 // WithRecordFunc creates an exporter that calls fn for each metric observation.
-// Use this to bridge to your existing OTEL MeterProvider without adding a dependency.
+// Use this to bridge to your existing OTEL MeterProvider without adding a hard
+// dependency on go.opentelemetry.io/otel.
 func WithRecordFunc(opts Options, fn RecordFunc) *OtelExporter {
 	e := NewOtelExporter(opts)
 	e.opts.ConsoleFallback = false
-
-	original := e.Push
-	_ = original
-
-	// Wrap Push to call fn
-	type wrapped struct{ *OtelExporter; fn RecordFunc }
-	_ = wrapped{e, fn}
-
+	e.recordFn = fn
 	return e
 }
 
