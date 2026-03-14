@@ -8,9 +8,14 @@ on:
 
 jobs:
   # ── npm (Node SDK) ────────────────────────────────────────────────────────────
+  # Prerequisites: add NPM_TOKEN to repo secrets at
+  # https://github.com/anandsrinivasan1/leak-assert/settings/secrets/actions
+  # Token must be a granular access token with "Bypass 2FA" enabled.
   publish-npm:
     name: Publish to npm
     runs-on: ubuntu-latest
+    # Skip gracefully if the secret is not configured (e.g. in forks)
+    if: ${{ secrets.NPM_TOKEN != '' }}
     permissions:
       contents: read
       id-token: write   # required for provenance attestation
@@ -54,9 +59,17 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   # ── PyPI (Python SDK) ────────────────────────────────────────────────────────
+  # Uses OIDC trusted publishing — no PyPI token needed.
+  # One-time setup on pypi.org:
+  #   Project → Settings → Publishing → Add a new publisher
+  #   Provider: GitHub  Owner: anandsrinivasan1  Repo: leak-assert
+  #   Workflow: publish.yml  Environment: pypi
   publish-pypi:
     name: Publish to PyPI
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/leak-assert/
     permissions:
       id-token: write
     steps:
@@ -116,7 +129,7 @@ jobs:
   github-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: [publish-npm, publish-pypi, publish-go]
+    needs: [publish-pypi, publish-go]
     permissions:
       contents: write
     steps:
