@@ -207,8 +207,6 @@ fn cmd_watch(url: String, interval_secs: u64, window: usize, threshold: String) 
     let client      = reqwest::blocking::Client::new();
     let mut samples: Vec<Sample> = Vec::new();
     let mut iter    = 0u64;
-    let mut alerted = false;
-
     println!("── leak-assert watch ──");
     println!("  url:       {url}");
     println!("  interval:  {interval_secs}s  window: {window}  threshold: {threshold}");
@@ -233,8 +231,7 @@ fn cmd_watch(url: String, interval_secs: u64, window: usize, threshold: String) 
             heap_used as f64 / 1024.0 / 1024.0, slope);
         std::io::stdout().flush().ok();
 
-        if slope > max_slope && !alerted {
-            alerted = true;
+        if slope > max_slope {
             eprintln!("\n\n  ALERT: slope {:.1} bytes/iter exceeds threshold {}", slope, threshold);
             std::process::exit(1);
         }
@@ -267,7 +264,7 @@ fn run_http_workload(
         if i < warmup { continue; }
         let iter = i - warmup + 1;
 
-        if iter % sample_every == 0 {
+        if iter.is_multiple_of(sample_every) {
             // Remote heap sampling: request /metrics or /__leak_assert__/heap
             // Falls back to zero if endpoint not available
             let heap_used = fetch_remote_heap(url, &client).unwrap_or(0);

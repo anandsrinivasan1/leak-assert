@@ -70,6 +70,7 @@ pub extern "C" fn la_slope(samples_json: *const c_char) -> *mut c_char {
 }
 
 /// Free a string previously returned by this library.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 #[no_mangle]
 pub extern "C" fn la_free_string(ptr: *mut c_char) {
     if ptr.is_null() { return; }
