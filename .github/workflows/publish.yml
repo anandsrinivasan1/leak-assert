@@ -107,8 +107,8 @@ jobs:
         # We push a sub-directory tag: sdks/go/vX.Y.Z
         run: |
           VERSION="${GITHUB_REF_NAME}"
-          git tag "sdks/go/${VERSION}" HEAD
-          git push origin "sdks/go/${VERSION}"
+          git tag "sdks/go/${VERSION}" HEAD 2>/dev/null || echo "Tag already exists, skipping"
+          git push origin "sdks/go/${VERSION}" || echo "Tag already pushed, skipping"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

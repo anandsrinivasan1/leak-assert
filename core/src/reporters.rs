@@ -1,4 +1,4 @@
-use crate::{AssertionResult, AssertionStatus, LeakTestResult};
+use crate::{AssertionStatus, LeakTestResult};
 
 // ── JUnit XML ─────────────────────────────────────────────────────────────────
 
@@ -179,7 +179,7 @@ fn format_bytes(b: i64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{analyzer::{AnalysisResult, LeakPattern}, AssertionStatus};
+    use crate::{analyzer::{AnalysisResult, LeakPattern}, AssertionResult, AssertionStatus};
 
     fn dummy_result(passed: bool) -> LeakTestResult {
         LeakTestResult {

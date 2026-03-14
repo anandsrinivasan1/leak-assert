@@ -131,7 +131,7 @@ fn compute_baseline_delta(samples: &[Sample]) -> i64 {
 // ── Step Change Detection ────────────────────────────────────────────────────
 
 /// Find the iteration where heap made an unusually large single jump
-fn detect_step_change(samples: &[Sample]) -> Option<(u64, u64)> {
+fn detect_step_change(samples: &[Sample]) -> Option<(u64, i64)> {
     if samples.len() < 4 { return None; }
 
     let deltas: Vec<i64> = samples.windows(2)
@@ -145,10 +145,9 @@ fn detect_step_change(samples: &[Sample]) -> Option<(u64, u64)> {
     // A step is > 4 standard deviations from mean
     let threshold = mean + 4.0 * stddev;
 
-    deltas.iter().enumerate().find(|(_, &d)| d as f64 > threshold).map(|(i, _)| {
-        let start = samples[i].iter;
-        let end   = samples[i + 1].iter;
-        (start, end)
+    deltas.iter().enumerate().find(|(_, &d)| d as f64 > threshold).map(|(i, &d)| {
+        let at_iter = samples[i].iter;
+        (at_iter, d)
     })
 }
 
