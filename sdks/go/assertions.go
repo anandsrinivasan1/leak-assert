@@ -155,7 +155,7 @@ func ParseBytes(s string) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	unit := strings.ToLower(strings.TrimSuffix(m[2], "b"))
+	unit := strings.TrimSuffix(strings.ToLower(m[2]), "b")
 	mult := map[string]float64{"k": 1024, "m": 1024 * 1024, "g": 1024 * 1024 * 1024, "": 1}[unit]
 	return uint64(n * mult), nil
 }

@@ -126,12 +126,14 @@ fn eval_one(assertion: &Assertion, result: &AnalysisResult) -> AssertionResult {
 pub fn parse_bytes(s: &str) -> Result<u64, String> {
     let s = s.trim().to_lowercase();
     let s = s.trim_start_matches('<').trim();
-    let (num, unit) = s.split_once(|c: char| c.is_alphabetic())
-        .map(|(n, u)| (n.trim(), u.trim()))
-        .unwrap_or((s, ""));
+    let s = s.trim_end_matches("/iter").trim();
 
-    let n: f64 = num.parse().map_err(|_| format!("cannot parse number: {s}"))?;
-    let multiplier = match unit.trim_end_matches("/iter").trim() {
+    let split_at = s.find(|c: char| c.is_alphabetic()).unwrap_or(s.len());
+    let num  = s[..split_at].trim();
+    let unit = s[split_at..].trim();
+
+    let n: f64 = num.parse().map_err(|_| format!("cannot parse number: {num}"))?;
+    let multiplier = match unit {
         "kb" | "k" => 1_024.0,
         "mb" | "m" => 1_024.0 * 1_024.0,
         "gb" | "g" => 1_024.0 * 1_024.0 * 1_024.0,

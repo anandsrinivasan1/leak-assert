@@ -81,8 +81,8 @@ class LeakAssertionError(AssertionError):
 
 # ── Assertion functions ───────────────────────────────────────────────────────
 
-def assert_growth_rate(samples: Sequence[Sample], max_bytes_per_iter: int | str) -> None:
-    limit = parse_bytes(max_bytes_per_iter)
+def assert_growth_rate(samples: Sequence[Sample], max: int | str) -> None:  # noqa: A002
+    limit = parse_bytes(max)
     slope = ols_slope(samples)
     if slope > limit:
         raise LeakAssertionError(
@@ -103,8 +103,8 @@ def assert_stable(samples: Sequence[Sample], tolerance: int | str) -> None:
         )
 
 
-def assert_ceiling(samples: Sequence[Sample], max_bytes: int | str) -> None:
-    limit = parse_bytes(max_bytes)
+def assert_ceiling(samples: Sequence[Sample], max: int | str) -> None:  # noqa: A002
+    limit = parse_bytes(max)
     peak  = max(s.heap_used for s in samples)
     if peak > limit:
         raise LeakAssertionError(

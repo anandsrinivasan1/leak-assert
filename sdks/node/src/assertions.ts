@@ -27,15 +27,13 @@ export class AssertionError extends Error {
 // ── Assertion runner ──────────────────────────────────────────────────────────
 
 export function runAssertions(samples: Sample[], opts: AssertionOptions): void {
-  if (samples.length < 3) return
-
-  if (opts.growthRate !== undefined) {
+  if (opts.growthRate !== undefined && samples.length >= 3) {
     assertGrowthRate(samples, parseBytes(opts.growthRate))
   }
-  if (opts.stable !== undefined) {
+  if (opts.stable !== undefined && samples.length >= 2) {
     assertStable(samples, parseBytes(opts.stable))
   }
-  if (opts.ceiling !== undefined) {
+  if (opts.ceiling !== undefined && samples.length >= 1) {
     assertCeiling(samples, parseBytes(opts.ceiling))
   }
 }

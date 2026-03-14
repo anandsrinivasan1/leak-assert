@@ -138,17 +138,20 @@ fn detect_step_change(samples: &[Sample]) -> Option<(u64, i64)> {
         .map(|w| w[1].heap_used as i64 - w[0].heap_used as i64)
         .collect();
 
-    let mean   = deltas.iter().map(|&d| d as f64).sum::<f64>() / deltas.len() as f64;
-    let stddev = (deltas.iter().map(|&d| (d as f64 - mean).powi(2)).sum::<f64>()
-        / deltas.len() as f64).sqrt();
+    let max_delta = deltas.iter().copied().max().unwrap_or(0);
 
-    // A step is > 4 standard deviations from mean
-    let threshold = mean + 4.0 * stddev;
+    // Must be at least 1 MB to count as a step change
+    if max_delta < 1_000_000 { return None; }
 
-    deltas.iter().enumerate().find(|(_, &d)| d as f64 > threshold).map(|(i, &d)| {
-        let at_iter = samples[i].iter;
-        (at_iter, d)
-    })
+    // Must be an outlier: at least 10x the median delta
+    let mut sorted = deltas.clone();
+    sorted.sort_unstable();
+    let median = sorted[sorted.len() / 2];
+    if max_delta < 10 * median.max(1) { return None; }
+
+    deltas.iter().enumerate()
+        .find(|(_, &d)| d == max_delta)
+        .map(|(i, &d)| (samples[i].iter, d))
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────────
