@@ -105,7 +105,10 @@ def assert_stable(samples: Sequence[Sample], tolerance: int | str) -> None:
 
 def assert_ceiling(samples: Sequence[Sample], max: int | str) -> None:  # noqa: A002
     limit = parse_bytes(max)
-    peak  = max(s.heap_used for s in samples)
+    peak = 0
+    for s in samples:
+        if s.heap_used > peak:
+            peak = s.heap_used
     if peak > limit:
         raise LeakAssertionError(
             "ceiling",

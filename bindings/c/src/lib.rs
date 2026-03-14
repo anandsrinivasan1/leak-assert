@@ -22,6 +22,7 @@ fn str_to_cstring(s: String) -> *mut c_char {
 /// Analyse samples and evaluate assertions.
 /// Returns a JSON string of LeakTestResult on success, or an error JSON on failure.
 /// The returned pointer MUST be freed with la_free_string().
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 #[no_mangle]
 pub extern "C" fn la_analyze(
     samples_json:    *const c_char,
@@ -47,6 +48,7 @@ pub extern "C" fn la_analyze(
 }
 
 /// Compute OLS slope only.  Returns the slope as a JSON number string.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 #[no_mangle]
 pub extern "C" fn la_slope(samples_json: *const c_char) -> *mut c_char {
     let s = match cstr_to_str(samples_json) { Some(s) => s, None => return error("null samples_json") };

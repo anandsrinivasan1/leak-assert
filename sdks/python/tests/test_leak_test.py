@@ -42,11 +42,12 @@ class TestLeakTestAssertions:
 
     def test_growth_rate_fails_for_leaky_list(self):
         store: list = []
-        with LeakTest(iterations=200, warmup=0, sample_every=20) as t:
+        # force_gc=False: avoid GC noise swamping the leak signal
+        with LeakTest(iterations=100, warmup=0, sample_every=10, force_gc=False) as t:
             for _ in t:
-                store.append(b"x" * 4096)
+                store.append(b"x" * 40960)  # 40 KB per iteration
         with pytest.raises(LeakAssertionError, match="growth_rate"):
-            t.assert_growth_rate(max=kb(0.1))
+            t.assert_growth_rate(max=kb(10))  # limit 10 KB/iter; actual ~40 KB/iter
 
     def test_chaining_assertions(self):
         with LeakTest(iterations=100, warmup=0) as t:
