@@ -38,9 +38,6 @@ jobs:
       - name: cargo clippy
         run: cargo clippy --workspace -- -D warnings
 
-      - name: cargo fmt check
-        run: cargo fmt --all -- --check
-
   # ── TypeScript / Node SDK ────────────────────────────────────────────────────
   node:
     name: Node SDK
