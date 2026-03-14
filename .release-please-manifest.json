@@ -1,9 +1,9 @@
 {
-  "sdks/node":    "0.1.0",
-  "sdks/python":  "0.1.0",
-  "sdks/go":      "0.1.0",
-  "core":         "0.1.0",
-  "plugins/jest":   "0.1.0",
-  "plugins/pytest": "0.1.0",
-  "plugins/vitest": "0.1.0"
+  "sdks/node": "0.2.0",
+  "sdks/python": "0.2.0",
+  "sdks/go": "0.2.0",
+  "core": "0.2.0",
+  "plugins/jest": "0.2.0",
+  "plugins/pytest": "0.2.0",
+  "plugins/vitest": "0.2.0"
 }
