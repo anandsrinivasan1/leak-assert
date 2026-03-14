@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 
 [project]
 name        = "leak-assert"
-version     = "0.1.0"
+version     = "0.2.0"
 description = "Memory leak regression testing — write assertions, not profiler reports"
 license     = { text = "MIT" }
 readme      = "README.md"
