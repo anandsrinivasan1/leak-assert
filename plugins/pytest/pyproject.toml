@@ -1,0 +1,17 @@
+[build-system]
+requires      = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name        = "pytest-leak-assert"
+version     = "0.1.0"
+description = "pytest plugin for memory leak regression testing"
+license     = { text = "MIT" }
+requires-python  = ">=3.10"
+dependencies     = ["pytest>=7", "leak-assert>=0.1"]
+
+[project.entry-points."pytest11"]
+leak-assert = "pytest_leak_assert.plugin"
+
+[tool.hatch.build.targets.wheel]
+packages = ["pytest_leak_assert"]

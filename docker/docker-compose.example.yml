@@ -1,0 +1,30 @@
+version: "3.9"
+
+# Example: run your app + leak-assert sidecar as a compose stack.
+# The leak-assert container watches your app's heap via the HTTP sidecar.
+
+services:
+  # ── Your application ────────────────────────────────────────────────────────
+  app:
+    image: node:20-alpine
+    working_dir: /app
+    volumes: ["./:/app"]
+    command: node --expose-gc server.js
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+
+  # ── leak-assert watch sidecar ────────────────────────────────────────────────
+  leak-watcher:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      LEAK_ASSERT_URL:       http://app:9123/__leak_assert__/heap
+      LEAK_ASSERT_INTERVAL:  "10"
+      LEAK_ASSERT_THRESHOLD: "2kb/iter"
+      LEAK_ASSERT_WINDOW:    "30"
+    depends_on:
+      - app
+    restart: unless-stopped

@@ -1,0 +1,22 @@
+{
+  "name":        "jest-leak-assert",
+  "version":     "0.1.0",
+  "description": "Jest reporter + global setup for leak-assert",
+  "main":        "dist/index.js",
+  "types":       "dist/index.d.ts",
+  "keywords":    ["jest", "memory", "leak", "reporter"],
+  "license":     "MIT",
+  "scripts": {
+    "build": "tsc"
+  },
+  "peerDependencies": {
+    "jest":         ">=29",
+    "leak-assert":  ">=0.1"
+  },
+  "devDependencies": {
+    "typescript":   "^5.0.0",
+    "@types/node":  "^20.0.0",
+    "@jest/types":  "^29.0.0",
+    "@jest/reporters": "^29.0.0"
+  }
+}

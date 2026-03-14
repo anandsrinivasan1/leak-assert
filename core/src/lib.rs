@@ -1,5 +1,6 @@
 pub mod analyzer;
 pub mod assertions;
+pub mod reporters;
 pub mod sampler;
 
 pub use analyzer::{analyze, AnalysisResult, LeakPattern};

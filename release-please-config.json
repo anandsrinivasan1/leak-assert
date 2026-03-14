@@ -1,0 +1,51 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "node",
+  "packages": {
+    "sdks/node": {
+      "release-type":   "node",
+      "package-name":   "leak-assert",
+      "changelog-path": "CHANGELOG.md"
+    },
+    "sdks/python": {
+      "release-type":        "python",
+      "package-name":        "leak-assert",
+      "version-file":        "pyproject.toml",
+      "changelog-path":      "CHANGELOG.md"
+    },
+    "sdks/go": {
+      "release-type":   "go",
+      "package-name":   "github.com/leak-assert/leak-assert-go",
+      "changelog-path": "CHANGELOG.md"
+    },
+    "core": {
+      "release-type":   "rust",
+      "package-name":   "leak-assert-core",
+      "changelog-path": "CHANGELOG.md"
+    },
+    "plugins/jest": {
+      "release-type":   "node",
+      "package-name":   "jest-leak-assert",
+      "changelog-path": "CHANGELOG.md"
+    },
+    "plugins/pytest": {
+      "release-type":   "python",
+      "package-name":   "pytest-leak-assert",
+      "changelog-path": "CHANGELOG.md"
+    },
+    "plugins/vitest": {
+      "release-type":   "node",
+      "package-name":   "vitest-leak-assert",
+      "changelog-path": "CHANGELOG.md"
+    }
+  },
+  "pull-request-title-pattern": "chore: release ${component} v${version}",
+  "changelog-sections": [
+    { "type": "feat",     "section": "Features" },
+    { "type": "fix",      "section": "Bug Fixes" },
+    { "type": "perf",     "section": "Performance" },
+    { "type": "docs",     "section": "Documentation" },
+    { "type": "chore",    "section": "Miscellaneous", "hidden": true },
+    { "type": "refactor", "section": "Miscellaneous", "hidden": true }
+  ]
+}

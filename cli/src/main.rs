@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
-use leak_assert_core::{run_assertions, Assertion, Sample};
+use leak_assert_core::{reporters, run_assertions, Assertion, Sample};
 use serde::Deserialize;
-use std::{path::PathBuf, thread, time::Duration};
+use std::{io::Write as IoWrite, path::PathBuf, thread, time::Duration};
 
 // ── CLI definition ────────────────────────────────────────────────────────────
 
@@ -35,6 +35,20 @@ enum Command {
     Diff {
         before: PathBuf,
         after:  PathBuf,
+    },
+    /// Watch a live process via its sidecar endpoint, alert on slope growth
+    Watch {
+        /// Sidecar heap URL e.g. http://localhost:9123/__leak_assert__/heap
+        url: String,
+        /// Polling interval in seconds (default: 5)
+        #[arg(long, default_value = "5")]
+        interval: u64,
+        /// Window size: number of samples to keep for slope calculation (default: 20)
+        #[arg(long, default_value = "20")]
+        window: usize,
+        /// Max allowed slope bytes/iter before alerting e.g. "1kb/iter"
+        #[arg(long, default_value = "2kb/iter")]
+        threshold: String,
     },
 }
 
@@ -87,6 +101,8 @@ fn main() {
         Command::Http   { url, iters, warmup, assert_growth } =>
             cmd_http(url, iters, warmup, assert_growth),
         Command::Diff   { before, after } => cmd_diff(before, after),
+        Command::Watch  { url, interval, window, threshold } =>
+            cmd_watch(url, interval, window, threshold),
     }
 }
 
@@ -123,8 +139,27 @@ fn cmd_run(config_path: PathBuf) {
     let result = run_assertions(&samples, &assertions);
     print_result(&result);
 
+    // Write reports if requested
+    let samples_json = serde_json::to_string(&samples).unwrap_or_default();
+    write_reports(&result, &cfg.name, &samples_json);
+
     if !result.passed {
         std::process::exit(1);
+    }
+}
+
+fn write_reports(result: &leak_assert_core::LeakTestResult, name: &str, samples_json: &str) {
+    // HTML report
+    let html = reporters::to_html(result, name, samples_json);
+    let html_path = format!("leak-assert-{}.html", name.replace(' ', "-").to_lowercase());
+    if std::fs::write(&html_path, html).is_ok() {
+        println!("  report:     {html_path}");
+    }
+    // JUnit XML
+    let xml = reporters::to_junit(result, name);
+    let xml_path = format!("leak-assert-{}.xml", name.replace(' ', "-").to_lowercase());
+    if std::fs::write(&xml_path, xml).is_ok() {
+        println!("  junit:      {xml_path}");
     }
 }
 
@@ -163,6 +198,48 @@ fn cmd_diff(before: PathBuf, after: PathBuf) {
     if delta > 1024.0 {
         eprintln!("  WARNING: slope increased by {:.1}kb/iter", delta / 1024.0);
         std::process::exit(1);
+    }
+}
+
+fn cmd_watch(url: String, interval_secs: u64, window: usize, threshold: String) {
+    let max_slope   = parse_bytes_f64(&threshold);
+    let interval    = Duration::from_secs(interval_secs);
+    let client      = reqwest::blocking::Client::new();
+    let mut samples: Vec<Sample> = Vec::new();
+    let mut iter    = 0u64;
+    let mut alerted = false;
+
+    println!("── leak-assert watch ──");
+    println!("  url:       {url}");
+    println!("  interval:  {interval_secs}s  window: {window}  threshold: {threshold}");
+    println!("  Press Ctrl-C to stop\n");
+
+    loop {
+        iter += 1;
+
+        let heap_used = fetch_remote_heap(&url, &client).unwrap_or(0);
+        let sample = Sample::new(iter, heap_used);
+        samples.push(sample);
+
+        // Keep rolling window
+        if samples.len() > window {
+            samples.drain(0..samples.len() - window);
+        }
+
+        let slope = if samples.len() >= 3 { compute_slope(&samples) } else { 0.0 };
+        let status = if slope > max_slope { "⚠ LEAK" } else { "  OK  " };
+
+        print!("\r  [{status}]  iter={iter:>6}  heap={:>8.2}MB  slope={:>+8.1}B/iter",
+            heap_used as f64 / 1024.0 / 1024.0, slope);
+        std::io::stdout().flush().ok();
+
+        if slope > max_slope && !alerted {
+            alerted = true;
+            eprintln!("\n\n  ALERT: slope {:.1} bytes/iter exceeds threshold {}", slope, threshold);
+            std::process::exit(1);
+        }
+
+        thread::sleep(interval);
     }
 }
 
