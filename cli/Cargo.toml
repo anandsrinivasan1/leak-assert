@@ -1,0 +1,17 @@
+[package]
+name        = "leak-assert"
+version     = "0.1.0"
+edition     = "2021"
+description = "CLI for leak-assert — run declarative YAML leak tests against HTTP targets"
+
+[[bin]]
+name = "leak-assert"
+path = "src/main.rs"
+
+[dependencies]
+leak-assert-core = { path = "../core" }
+serde            = { version = "1", features = ["derive"] }
+serde_json       = "1"
+serde_yaml       = "0.9"
+clap             = { version = "4", features = ["derive"] }
+reqwest          = { version = "0.11", features = ["blocking", "json"] }

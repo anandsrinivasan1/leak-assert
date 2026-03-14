@@ -1,0 +1,17 @@
+[package]
+name        = "leak-assert-python"
+version     = "0.1.0"
+edition     = "2021"
+description = "PyO3 native extension for leak-assert-core"
+
+[lib]
+name       = "leak_assert_native"
+crate-type = ["cdylib"]
+
+[dependencies]
+leak-assert-core = { path = "../../core" }
+pyo3             = { version = "0.21", features = ["extension-module"] }
+serde_json       = "1"
+
+[profile.release]
+strip = true

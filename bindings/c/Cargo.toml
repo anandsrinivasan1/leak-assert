@@ -1,0 +1,16 @@
+[package]
+name        = "leak-assert-ffi"
+version     = "0.1.0"
+edition     = "2021"
+description = "C-compatible FFI for leak-assert-core (used by Go SDK via cgo)"
+
+[lib]
+name       = "leak_assert_ffi"
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+leak-assert-core = { path = "../../core" }
+serde_json       = "1"
+
+[profile.release]
+strip = true

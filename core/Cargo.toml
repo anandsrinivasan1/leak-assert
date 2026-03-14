@@ -1,0 +1,16 @@
+[package]
+name        = "leak-assert-core"
+version     = "0.1.0"
+edition     = "2021"
+description = "Core analysis engine for leak-assert — growth curve fitting, step detection, assertions"
+
+[lib]
+name      = "leak_assert_core"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+serde       = { version = "1", features = ["derive"] }
+serde_json  = "1"
+
+[dev-dependencies]
+approx = "0.5"

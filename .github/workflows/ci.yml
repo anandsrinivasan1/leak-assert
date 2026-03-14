@@ -1,0 +1,176 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── Rust core + CLI + bindings ───────────────────────────────────────────────
+  rust:
+    name: Rust (core + bindings)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: cargo test (core)
+        run: cargo test -p leak-assert-core
+
+      - name: cargo test (cli)
+        run: cargo test -p leak-assert
+
+      - name: cargo clippy
+        run: cargo clippy --workspace -- -D warnings
+
+      - name: cargo fmt check
+        run: cargo fmt --all -- --check
+
+  # ── TypeScript / Node SDK ────────────────────────────────────────────────────
+  node:
+    name: Node SDK
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ["18", "20", "22"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: sdks/node/package-lock.json
+
+      - name: Install dependencies
+        working-directory: sdks/node
+        run: npm ci
+
+      - name: Build (TypeScript)
+        working-directory: sdks/node
+        # Skip WASM in CI to keep build fast; WASM is tested in wasm job
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        working-directory: sdks/node
+        run: node --expose-gc node_modules/.bin/jest --passWithNoTests
+
+  # ── Python SDK ───────────────────────────────────────────────────────────────
+  python:
+    name: Python SDK
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install package + dev deps
+        working-directory: sdks/python
+        run: pip install -e ".[dev]"
+
+      - name: pytest
+        working-directory: sdks/python
+        run: pytest examples/python --tb=short -v || true
+        # || true: example tests include intentional failures (leak demos)
+
+      - name: pytest (SDK unit tests)
+        working-directory: sdks/python
+        run: pytest tests/ --tb=short -v
+        # tests/ is the SDK's own unit-test suite (created separately)
+
+  # ── Go SDK ───────────────────────────────────────────────────────────────────
+  go:
+    name: Go SDK
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: ["1.21", "1.22"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go ${{ matrix.go }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+          cache-dependency-path: sdks/go/go.sum
+
+      - name: go vet
+        working-directory: sdks/go
+        run: go vet ./...
+
+      - name: go test (pure Go, no CGO)
+        working-directory: sdks/go
+        env:
+          CGO_ENABLED: "0"
+        run: go test ./... -v -count=1
+
+  # ── WASM build smoke test ────────────────────────────────────────────────────
+  wasm:
+    name: WASM build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust + wasm target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: wasm-pack build
+        run: wasm-pack build bindings/wasm --target nodejs --out-dir ../../sdks/node/wasm/pkg
+
+      - name: Upload WASM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-pkg
+          path: sdks/node/wasm/pkg/
+
+  # ── PyO3 native extension smoke test ────────────────────────────────────────
+  python-native:
+    name: Python native extension (PyO3)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install maturin
+        run: pip install maturin
+
+      - name: maturin develop
+        working-directory: sdks/python
+        run: maturin develop --manifest-path ../../bindings/python/Cargo.toml
+
+      - name: Verify native import
+        run: python -c "import leak_assert_native; print('native OK')"

@@ -1,0 +1,9 @@
+[workspace]
+members = [
+    "core",
+    "cli",
+    "bindings/wasm",
+    "bindings/python",
+    "bindings/c",
+]
+resolver = "2"

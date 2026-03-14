@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://leak-assert.dev/spec/envelope.schema.json",
+  "title": "SampleEnvelope",
+  "description": "Common memory sample emitted by every language sampler",
+  "type": "object",
+  "required": ["ts", "iter", "heap_used"],
+  "properties": {
+    "ts":         { "type": "integer", "description": "Unix timestamp in milliseconds" },
+    "iter":       { "type": "integer", "minimum": 0, "description": "Iteration number" },
+    "heap_used":  { "type": "integer", "minimum": 0, "description": "Live heap bytes" },
+    "heap_total": { "type": "integer", "minimum": 0, "description": "Committed heap bytes" },
+    "rss":        { "type": "integer", "minimum": 0, "description": "Resident set size bytes" },
+    "external":   { "type": "integer", "minimum": 0, "description": "Off-heap / native bytes" },
+    "gc_count":   { "type": "integer", "minimum": 0, "description": "GC cycles since start" },
+    "label":      { "type": "string",  "description": "Optional annotation" }
+  },
+  "additionalProperties": false
+}

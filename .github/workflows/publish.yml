@@ -1,0 +1,129 @@
+name: Publish
+
+# Triggered by a version tag: git tag v0.2.0 && git push --tags
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  # ── npm (Node SDK) ────────────────────────────────────────────────────────────
+  publish-npm:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # required for provenance attestation
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust + wasm target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        working-directory: sdks/node
+        run: npm ci
+
+      - name: Build WASM
+        working-directory: sdks/node
+        run: npm run build:wasm
+
+      - name: Build TypeScript
+        working-directory: sdks/node
+        run: npm run build
+
+      - name: Stamp version from tag
+        working-directory: sdks/node
+        run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version
+
+      - name: Publish to npm
+        working-directory: sdks/node
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # ── PyPI (Python SDK) ────────────────────────────────────────────────────────
+  publish-pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install maturin
+        run: pip install maturin
+
+      - name: Stamp version from tag
+        working-directory: sdks/python
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          sed -i "s/^version = .*/version = \"${VERSION}\"/" pyproject.toml
+
+      - name: Build wheels (pure Python)
+        working-directory: sdks/python
+        run: pip install build && python -m build --wheel --sdist
+
+      - name: Build native wheel (PyO3 / maturin)
+        working-directory: sdks/python
+        run: maturin build --release --manifest-path ../../bindings/python/Cargo.toml -o dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: sdks/python/dist/
+
+  # ── Go module (pkg.go.dev) ───────────────────────────────────────────────────
+  publish-go:
+    name: Tag Go module
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create Go module tag
+        # pkg.go.dev picks up the module automatically when a vX.Y.Z tag is
+        # pushed that matches the module path in go.mod.
+        # We push a sub-directory tag: sdks/go/vX.Y.Z
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          git tag "sdks/go/${VERSION}" HEAD
+          git push origin "sdks/go/${VERSION}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── GitHub Release ───────────────────────────────────────────────────────────
+  github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [publish-npm, publish-pypi, publish-go]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          draft: false

@@ -1,0 +1,37 @@
+# Rust
+target/
+Cargo.lock
+
+# Node
+node_modules/
+dist/
+wasm/pkg/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.venv/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+
+# Go
+*.test
+*.out
+
+# Docs
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.idea/
+.vscode/settings.json
+*.swp
