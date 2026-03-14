@@ -1,5 +1,5 @@
 {
-  "name": "leak-assert",
+  "name": "@anandsrinivasan2/leak-assert",
   "version": "0.1.0",
   "description": "Memory leak regression testing — write assertions, not profiler reports",
   "main": "dist/index.js",
@@ -16,7 +16,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url":  "https://github.com/leak-assert/leak-assert"
+    "url":  "https://github.com/anandsrinivasan1/leak-assert"
   },
   "files": ["dist", "wasm/pkg"],
   "dependencies": {},
