@@ -1,6 +1,6 @@
 [package]
 name        = "leak-assert-core"
-version     = "0.1.0"
+version     = "0.2.0"
 edition     = "2021"
 description = "Core analysis engine for leak-assert — growth curve fitting, step detection, assertions"
 
