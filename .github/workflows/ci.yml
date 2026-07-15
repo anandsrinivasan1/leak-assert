@@ -115,13 +115,13 @@ jobs:
 
       - name: go vet
         working-directory: sdks/go
-        run: go vet ./...
+        run: go vet $(go list ./... | grep -v '/ffi$')
 
       - name: go test (pure Go, no CGO)
         working-directory: sdks/go
         env:
           CGO_ENABLED: "0"
-        run: go test ./... -v -count=1
+        run: go test $(go list ./... | grep -v '/ffi$') -v -count=1
 
   # ── WASM build smoke test ────────────────────────────────────────────────────
   wasm:
@@ -212,8 +212,8 @@ jobs:
         working-directory: sdks/go
         env:
           CGO_ENABLED: "1"
-          CGO_LDFLAGS: "-L${{ github.workspace }}/bindings/c/target/release -lleak_assert_ffi"
-          LD_LIBRARY_PATH: "${{ github.workspace }}/bindings/c/target/release"
+          CGO_LDFLAGS: "-L${{ github.workspace }}/target/release -lleak_assert_ffi"
+          LD_LIBRARY_PATH: "${{ github.workspace }}/target/release"
         run: go test ./ffi/... -v -count=1
 
   # ── WASM web target (browser / Deno) ─────────────────────────────────────────
