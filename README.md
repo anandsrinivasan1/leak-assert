@@ -6,6 +6,7 @@
 [![npm](https://img.shields.io/npm/v/@anandsrinivasan2/leak-assert)](https://www.npmjs.com/package/@anandsrinivasan2/leak-assert)
 [![PyPI](https://img.shields.io/pypi/v/leak-assert)](https://pypi.org/project/leak-assert/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![EmitCI](https://api.emitci.com/api/v1/badge/anandsrinivasan1/leak-assert.svg)](https://app.emitci.com)
 
 ---
 
@@ -284,3 +285,4 @@ cd sdks/go && go test ./...
 ## License
 
 MIT © 2026 Anand Srinivasan
+
